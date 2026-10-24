@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LUMIQ·NEO - 免费公益调色</title>
+    <!-- 引入 Monoton 字体和基础无衬线字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Monoton&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --honor-yellow: #FFD700;
+            --glass-bg: rgba(255, 255, 255, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --text-main: #333;
+            --text-sub: #777;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* 液态玻璃通用类 */
+        .liquid-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            border-radius: 24px;
+        }
+
+        /* 顶部导航 */
+        .top-bar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Monoton', cursive;
+            font-size: 24px;
+            color: var(--text-main);
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logo span {
+            color: var(--honor-yellow);
+        }
+
+        /* 顶部按钮 */
+        .btn-yellow {
+            background: var(--honor-yellow);
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .btn-yellow:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+        }
+
+        /* 左侧工具栏 (类似参考图) */
+        .sidebar {
+            position: absolute;
+            left: 20px;
+            top: 100px;
+            bottom: 20px;
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 20px;
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        .tool-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            color: var(--text-main);
+            width: 60px;
+        }
+
+        .tool-item:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+
+        .tool-item.active {
+            color: var(--honor-yellow);
+        }
+        
+        .tool-item.active .icon-box {
+            background: var(--honor-yellow);
+            color: #000;
+            box-shadow: 0 4px 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .tool-item span {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* 中间画布区 */
+        .main-canvas {
+            flex: 1;
+            margin: 100px 380px 20px 120px;
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000; /* 模拟黑底照片区 */
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .main-canvas img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* 对比按钮 */
+        .compare-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .compare-btn:active {
+            transform: scale(0.9);
+            background: var(--honor-yellow);
+        }
+
+        /* 右侧调色面板 */
+        .adjust-panel {
+            position: absolute;
+            right: 20px;
+            top: 100px;
+            bottom: 20px;
+            width: 340px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 直方图占位 */
+        .histogram {
+            width: 100%;
+            height: 100px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .histogram::after {
+            content: 'RGB 直方图 (动态更新)';
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: var(--text-sub);
+        }
+
+        /* 滑块组 */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 荣耀液态玻璃滑块 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 3px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-top: -7px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            border: 2px solid var(--honor-yellow);
+        }
+
+        /* 登录弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .login-box {
+            width: 320px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .login-box {
+            transform: translateY(0);
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.8);
+            outline: none;
+            font-family: inherit;
+        }
+        
+        .login-box input:focus {
+            border-color: var(--honor-yellow);
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+        }
+
+        /* 适配移动端 */
+        @media (max-width: 768px) {
+            .sidebar {
+                top: auto;
+                bottom: 20px;
+                left: 20px;
+                right: 20px;
+                width: auto;
+                height: 80px;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 0 10px;
+            }
+            .main-canvas {
+                margin: 90px 20px 120px 20px;
+            }
+            .adjust-panel {
+                display: none; /* 移动端应改为底部抽屉式弹出 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航 -->
+    <header class="top-bar liquid-glass">
+        <div class="logo">LUMIQ<span>·NEO</span></div>
+        <div>
+            <button class="btn-yellow" id="exportBtn">导出照片</button>
+        </div>
+    </header>
+
+    <!-- 左侧/底部 工具栏 -->
+    <aside class="sidebar liquid-glass">
+        <div class="tool-item">
+            <div class="icon-box">◒</div>
+            <span>滤镜</span>
+        </div>
+        <div class="tool-item">
+            <div class="icon-box">✂</div>
+            <span>裁剪</span>
+        </div>
+        <div class="tool-item active">
+            <div class="icon-box">☀</div>
+            <span>调节</span>
+        </div>
+        <div class="tool-item">
+            <div class="icon-box">☯</div>
+            <span>曲线</span>
+        </div>
+        <div class="tool-item">
+            <div class="icon-box">🎨</div>
+            <span>色彩山</span>
+        </div>
+        <div class="tool-item">
+            <div class="icon-box">◯</div>
+            <span>蒙版</span>
+        </div>
+    </aside>
+
+    <!-- 主画布 -->
+    <main class="main-canvas">
+        <!-- 占位图片 -->
+        <img src="https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=2000&auto=format&fit=crop" alt="原图" id="mainImage">
+        
+        <!-- 对比按钮 -->
+        <div class="compare-btn" id="compareBtn" title="按住对比原图">
+            👁
+        </div>
+    </main>
+
+    <!-- 右侧面板 -->
+    <aside class="adjust-panel liquid-glass">
+        <div class="panel-title">
+            <span>基础调节</span>
+            <span style="color: var(--text-sub); font-size: 12px; cursor: pointer;">重置</span>
+        </div>
+        
+        <!-- 直方图 -->
+        <div class="histogram" id="histogram"></div>
+
+        <!-- 滑块组 -->
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>曝光 (Exposure)</span>
+                <span class="val">0.00</span>
+            </div>
+            <input type="range" min="-5" max="5" step="0.01" value="0" oninput="this.previousElementSibling.children[1].innerText = this.value">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>亮度 (Brightness)</span>
+                <span class="val">0</span>
+            </div>
+            <input type="range" min="-100" max="100" step="1" value="0" oninput="this.previousElementSibling.children[1].innerText = this.value">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>阴影 (Shadows)</span>
+                <span class="val">0</span>
+            </div>
+            <input type="range" min="-100" max="100" step="1" value="0" oninput="this.previousElementSibling.children[1].innerText = this.value">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>黑白色阶 (Blacks)</span>
+                <span class="val">0</span>
+            </div>
+            <input type="range" min="-100" max="100" step="1" value="0" oninput="this.previousElementSibling.children[1].innerText = this.value">
+        </div>
+    </aside>
+
+    <!-- 登录/注册弹窗 -->
+    <div class="modal-overlay show" id="loginModal">
+        <div class="login-box liquid-glass">
+            <h2 style="text-align: center; margin-bottom: 10px; font-family: 'Monoton', cursive;">LUMIQ·NEO</h2>
+            <p style="text-align: center; font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">加入我们，开启专业公益调色之旅</p>
+            <input type="text" id="username" placeholder="请输入用户名">
+            <input type="password" id="password" placeholder="设置密码">
+            <button class="btn-yellow" style="margin-top: 10px; width: 100%;" id="loginBtn">进入工作台</button>
+        </div>
+    </div>
+
+    <script>
+        // 模拟登录状态
+        const loginModal = document.getElementById('loginModal');
+        const loginBtn = document.getElementById('loginBtn');
+        let isLoggedIn = false;
+
+        loginBtn.addEventListener('click', () => {
+            const user = document.getElementById('username').value;
+            if(user) {
+                isLoggedIn = true;
+                loginModal.classList.remove('show');
+                // 这里可以对接后端 API
+                console.log(`用户 ${user} 已登录`);
+            } else {
+                alert('请输入用户名');
+            }
+        });
+
+        // 对比功能逻辑
+        const compareBtn = document.getElementById('compareBtn');
+        const mainImage = document.getElementById('mainImage');
+        const originalSrc = mainImage.src; // 实际项目中，这里应记录应用滤镜前的 Canvas 快照
+        
+        // 模拟已调色的图片 (加个滤镜)
+        const filteredSrc = "https://images.unsplash.com/photo-1493863641943-9b68992a8d07?q=80&w=2000&auto=format&fit=crop&sat=-50"; // 用降低饱和度模拟调色
+
+        compareBtn.addEventListener('mousedown', () => {
+            if(!isLoggedIn) return;
+            mainImage.src = originalSrc;
+        });
+        
+        compareBtn.addEventListener('mouseup', () => {
+            if(!isLoggedIn) return;
+            mainImage.src = filteredSrc;
+        });
+
+        compareBtn.addEventListener('mouseleave', () => {
+            if(!isLoggedIn) return;
+            mainImage.src = filteredSrc;
+        });
+
+        // 导出按钮逻辑
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            if(!isLoggedIn) {
+                alert('请先登录！');
+                loginModal.classList.add('show');
+                return;
+            }
+            // 模拟导出选项
+            const watermark = confirm('是否添加 LUMIQ·NEO 自动设备水印？\n(检测到设备：Sony A7M4)');
+            if(watermark) {
+                alert('正在渲染水印并导出...\n(使用 Canvas toDataURL 导出高清图片)');
+            } else {
+                alert('正在导出无边框原图...');
+            }
+        });
+        
+        // 初始化占位滑块状态
+        mainImage.src = filteredSrc; 
+
+        // 液态玻璃流动效果追踪 (PC端)
+        document.addEventListener('mousemove', (e) => {
+            const glassElements = document.querySelectorAll('.liquid-glass');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            glassElements.forEach(el => {
+                // 极轻微的光影跟随，增强立体感
+                el.style.boxShadow = `${(x - 0.5) * 20}px ${(y - 0.5) * 20}px 32px 0 rgba(31, 38, 135, 0.1)`;
+            });
+        });
+    </script>
+</body>
+</html>
